@@ -63,7 +63,7 @@ set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
 
 
 set_location_assignment PIN_T2 -to clock_50_i
-set_location_assignment PIN_E4 -to led_o
+set_location_assignment PIN_E4 -to led_n_o
 set_location_assignment PIN_V2 -to sdram_addr_o[0]
 set_location_assignment PIN_V1 -to sdram_addr_o[1]
 set_location_assignment PIN_U2 -to sdram_addr_o[2]

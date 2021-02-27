@@ -48,7 +48,6 @@ entity neptuno_top is
 	port (
 		-- Clock (50MHz)
 		clock_50_i				: in    std_logic;
-		led_o                : out   std_logic;
 		-- SDRAM (MT48LC16M16A2 = 16Mx16 = 32MB)
 		sdram_clock_o			: out   std_logic									:= '0';
 		sdram_cke_o    	  	: out   std_logic									:= '0';
@@ -61,11 +60,6 @@ entity neptuno_top is
 		sdram_we_n_o			: out   std_logic									:= '1';
 		sdram_cas_n_o			: out   std_logic									:= '1';
 		sdram_ras_n_o			: out   std_logic									:= '1';
-		-- SPI FLASH (FPGA and Aux)
-		flash_clk_o				: out   std_logic									:= '0';
-		flash_data_i			: in    std_logic;
-		flash_data_o			: out   std_logic									:= '0';
-		flash_cs_n_o			: out   std_logic									:= '1';
 		-- VGA 4:4:4
 		vga_r_o					: out   std_logic_vector(3 downto 0)		:= (others => '0');
 		vga_g_o					: out   std_logic_vector(3 downto 0)		:= (others => '0');
@@ -73,8 +67,7 @@ entity neptuno_top is
 		vga_hs_o					: out   std_logic									:= '1';
 		vga_vs_o					: out   std_logic									:= '1';
 		-- Keys and Leds
-		keys_n_i					: in    std_logic_vector(1 downto 0);
-		leds_n_o					: out   std_logic_vector(1 downto 0)		:= (others => '1');
+		led_n_o					: out   std_logic;
 		-- PS/2 Keyboard
 		ps2_clk_io				: inout std_logic									:= 'Z';
 		ps2_dat_io		 		: inout std_logic									:= 'Z';
@@ -90,8 +83,6 @@ entity neptuno_top is
 		sd_sclk_o				: out   std_logic									:= '0';
 		sd_mosi_o				: out   std_logic									:= '0';
 		sd_miso_i				: in    std_logic;
-		sd_pres_n_i				: in    std_logic;
-		sd_wp_i					: in    std_logic;
 		-- Joy
 		joy_load_o           : out   std_logic;
 		joy_clk_o            : out   std_logic;
@@ -171,13 +162,6 @@ architecture behavior of neptuno_top is
 	signal keymap_addr_s		: std_logic_vector( 8 downto 0);
 	signal keymap_data_s		: std_logic_vector( 7 downto 0);
 	signal keymap_we_s		: std_logic;
-	
-	-- SPI
-	signal spi_mosi_s			: std_logic;
-	signal spi_miso_s			: std_logic;
-	signal spi_sclk_s			: std_logic;
-	signal sdspi_cs_n_s		: std_logic;
-	signal flspi_cs_n_s		: std_logic;
 
 	-- Bus
 	signal bus_addr_s			: std_logic_vector(15 downto 0);
@@ -350,13 +334,12 @@ begin
 		scanline_en_o	=> open,
 		vertfreq_on_k_i=> extra_keys_s(0),		-- Pause/Break
 		-- SPI/SD
-		flspi_cs_n_o	=> flspi_cs_n_s,
-		spi_cs_n_o		=> sdspi_cs_n_s,
-		spi_sclk_o		=> spi_sclk_s,
-		spi_mosi_o		=> spi_mosi_s,
-		spi_miso_i		=> spi_miso_s,
-		sd_pres_n_i		=> sd_pres_n_i,
-		sd_wp_i			=> sd_wp_i,
+		spi_cs_n_o		=> sd_cs_n_o,
+		spi_sclk_o		=> sd_sclk_o,
+		spi_mosi_o		=> sd_mosi_o,
+		spi_miso_i		=> sd_miso_i,
+		sd_pres_n_i		=> '0',
+		sd_wp_i			=> '0',
 		-- DEBUG
 		D_wait_o			=> open,
 		D_slots_o		=> open,
@@ -494,21 +477,6 @@ begin
 		dac_o		=> dac_r_o
 	);
 	
-	-- Multiboot
-	--mb: entity work.multiboot
-	--generic map (
-	--	bit_g			=> 2
-	--)
-	--port map (
-	--	reset_i		=> por_s,
-	--	clock_i		=> clock_vdp_s,
-	--	start_i		=> reload_s,
-	--	spi_addr_i	=> X"000000"
-	--);
-
-
-	-- Glue logic
-
 	-- Power-on counter
 	process (clock_master_s)
 	begin
@@ -520,8 +488,8 @@ begin
 	end process;
 
 	por_clock_s	<= '1'	when por_cnt_s /= 0																else '0';
-	por_s			<= '1'	when por_cnt_s /= 0  or soft_por_s = '1'   or keys_n_i(1) = '0'	else '0';
-	reset_s		<= '1'	when soft_rst_cnt_s = X"00" or por_s = '1' or keys_n_i(0) = '0'	else '0';
+	por_s			<= '1'	when por_cnt_s /= 0  or soft_por_s = '1'   	else '0';
+	reset_s		<= '1'	when soft_rst_cnt_s = X"00" or por_s = '1' 	else '0';
 
 	process(clock_master_s)
 	begin
@@ -542,15 +510,6 @@ begin
 	vga_b_o	<= rgb_b_s;
 	vga_hs_o	<= rgb_hsync_n_s;
 	vga_vs_o	<= rgb_vsync_n_s;
-
-	-- SD and Flash
-	spi_miso_s		<= sd_miso_i when sdspi_cs_n_s = '0' else flash_data_i;
-	sd_mosi_o 		<= spi_mosi_s;
-	sd_sclk_o 		<= spi_sclk_s;
-	sd_cs_n_o 		<= sdspi_cs_n_s;
-	flash_data_o	<= spi_mosi_s;
-	flash_clk_o	<= spi_sclk_s;
-	flash_cs_n_o	<= flspi_cs_n_s;
 
 	-- Peripheral BUS control
 	bus_data_from_s	<= jt51_data_from_s	when jt51_hd_s = '1'	else
@@ -626,8 +585,8 @@ begin
 		tx_o				=> uart_tx_o
 	);
 
-	-- DEBUG
-	leds_n_o(0) <= '1';--sdspi_cs_n_s;
-	leds_n_o(1) <= '1';--flspi_cs_n_s;
+	stm_rst_o <= '0';
+	led_n_o <= '1';
+
 
 end architecture;
