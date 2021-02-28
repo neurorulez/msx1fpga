@@ -501,8 +501,8 @@ begin
 			vsync_n_o		=> vga_vsync_n_s
 		);
 
-		hsync_n_o		<= vga_hsync_n_s	when vga_en_i = '1' or video_opt_g = 2	else rgb_hsync_n_s;
-		vsync_n_o		<= vga_vsync_n_s	when vga_en_i = '1' or video_opt_g = 2	else rgb_vsync_n_s;
+		hsync_n_o		<= vga_hsync_n_s	when vga_en_i = '1' or video_opt_g = 2	else not (rgb_hsync_n_s xor rgb_vsync_n_s); --rgb_hsync_n_s; --~(cofi_hs ^ cofi_vs);
+		vsync_n_o		<= vga_vsync_n_s	when vga_en_i = '1' or video_opt_g = 2	else '1';--rgb_vsync_n_s;
 
 	end generate;
 

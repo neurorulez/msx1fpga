@@ -265,7 +265,7 @@ architecture Behavior of msx is
 	signal d_from_vdp_s     : std_logic_vector( 7 downto 0);
 	signal vdp_rd_n_s			: std_logic;
 	signal vdp_wr_n_s			: std_logic;
-	signal vga_en_s			: std_logic;
+	signal vga_en_s			: std_logic:= '0';
 	signal scanline_en_s		: std_logic;
 	signal ntsc_pal_s			: std_logic		:= '0';
 	signal vertfreq_csw_s	: std_logic;

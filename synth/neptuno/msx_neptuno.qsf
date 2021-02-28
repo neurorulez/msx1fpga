@@ -120,9 +120,9 @@ set_location_assignment PIN_B3 -to vga_hs_o
 set_location_assignment PIN_B2 -to vga_vs_o
 
 set_location_assignment PIN_N19 -to ps2_clk_io
-set_location_assignment PIN_N20 -to ps2_data_io
+set_location_assignment PIN_N20 -to ps2_dat_io
 set_location_assignment PIN_C21 -to ps2_mouse_clk_io
-set_location_assignment PIN_B21 -to ps2_mouse_data_io
+set_location_assignment PIN_B21 -to ps2_mouse_dat_io
 
 set_location_assignment PIN_A3 -to dac_l_o
 set_location_assignment PIN_B4 -to dac_r_o
